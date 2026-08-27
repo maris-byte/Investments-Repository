@@ -47,5 +47,6 @@ data class YahooQuote(
 
 @Serializable
 data class CoinGeckoMarketChart(
+    val prices: List<List<Double>>? = null,
     @SerialName("total_volumes") val totalVolumes: List<List<Double>>? = null
 )

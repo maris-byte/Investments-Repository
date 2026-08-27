@@ -43,14 +43,21 @@ Die vollständige Methodik steht in [docs/SCORING.md](docs/SCORING.md).
 
 Alle Quellen sind kostenlos und benötigen **keinen API-Schlüssel**:
 
-| Quelle | Abdeckung |
-|--------|-----------|
-| Yahoo Finance (Chart-API) | Aktien, ETFs, Futures (Gold, Silber, Öl, Kupfer …), Krypto |
+| Quelle | Rolle |
+|--------|-------|
+| Yahoo Finance (Chart-API) | Primärquelle für alles: Aktien, ETFs, Futures (Gold, Silber, Öl, Kupfer …) und Krypto – als einzige Quelle überall echte Tages-OHLC inklusive Volumen |
 | Stooq (CSV) | Ausweichquelle für Aktien, ETFs und Futures |
-| CoinGecko | Kryptowährungen (OHLC + Volumen) |
+| CoinGecko | Ausweichquelle für Kryptowährungen |
 
 Fällt eine Quelle aus (Rate-Limit, Netzfehler, unbekanntes Symbol), übernimmt automatisch die
-nächste. Ist gar nichts erreichbar, arbeitet die App mit dem lokalen Cache weiter.
+nächste. Ist gar nichts erreichbar, arbeitet die App mit dem lokalen Cache weiter. Jede Quelle
+wird gedrosselt abgefragt, damit der erste Lauf über alle Instrumente nicht in ein Rate-Limit
+läuft.
+
+Zur CoinGecko-Einschränkung: der kostenlose OHLC-Endpunkt liefert über ein Jahr nur
+4-Tages-Kerzen. Die App bildet deshalb Tageskerzen aus Kursen und Volumen des
+market_chart-Endpunkts – die Tagesspanne ist dabei enger als real, weshalb Yahoo für Krypto
+zuerst gefragt wird.
 
 ## Aufbau
 

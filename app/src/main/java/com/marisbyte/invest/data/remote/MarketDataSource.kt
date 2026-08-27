@@ -15,12 +15,15 @@ interface MarketDataSource {
  * Yahoo Finance deckt Aktien, ETFs, Futures (Gold, Oel, Kupfer) und Krypto ab und
  * liefert als einzige Quelle ueberall Volumendaten mit.
  */
-class YahooDataSource(private val api: YahooApi) : MarketDataSource {
+class YahooDataSource(
+    private val api: YahooApi,
+    private val rateLimiter: RateLimiter = RateLimiter(minIntervalMillis = 350)
+) : MarketDataSource {
 
     override val name = "Yahoo Finance"
 
     override suspend fun fetchDaily(asset: AssetEntity): List<Candle> {
-        val response = api.chart(asset.yahooSymbol)
+        val response = rateLimiter.withPermit { api.chart(asset.yahooSymbol) }
         val result = response.chart?.result?.firstOrNull() ?: return emptyList()
         val times = result.timestamp ?: return emptyList()
         val quote = result.indicators?.quote?.firstOrNull() ?: return emptyList()
@@ -45,13 +48,16 @@ class YahooDataSource(private val api: YahooApi) : MarketDataSource {
 }
 
 /** Stooq liefert eine schlanke CSV und dient als Ausweichquelle ohne Schluessel. */
-class StooqDataSource(private val api: StooqApi) : MarketDataSource {
+class StooqDataSource(
+    private val api: StooqApi,
+    private val rateLimiter: RateLimiter = RateLimiter(minIntervalMillis = 500)
+) : MarketDataSource {
 
     override val name = "Stooq"
 
     override suspend fun fetchDaily(asset: AssetEntity): List<Candle> {
         val symbol = asset.stooqSymbol ?: return emptyList()
-        val csv = api.dailyCsv(symbol)
+        val csv = rateLimiter.withPermit { api.dailyCsv(symbol) }
         return parseCsv(csv)
     }
 
@@ -99,45 +105,56 @@ class StooqDataSource(private val api: StooqApi) : MarketDataSource {
 }
 
 /**
- * CoinGecko ist die genaueste Quelle fuer Kryptowaehrungen. OHLC und Volumen kommen
- * aus zwei Endpunkten und werden ueber den Handelstag zusammengefuehrt.
+ * CoinGecko dient als Ausweichquelle fuer Kryptowaehrungen.
+ *
+ * Der kostenlose OHLC-Endpunkt liefert ueber ein Jahr nur 4-Tages-Kerzen und ist damit fuer
+ * eine Tagesanalyse unbrauchbar. Deshalb werden Tageskerzen aus Kursen und Volumen des
+ * market_chart-Endpunkts gebildet: Eroeffnung ist der Vortagesschluss, Hoch und Tief ergeben
+ * sich aus beiden Werten. Die Tagesspanne ist dadurch enger als real - Yahoo liefert echte
+ * OHLC-Daten und wird fuer Krypto zuerst befragt.
  */
-class CoinGeckoDataSource(private val api: CoinGeckoApi) : MarketDataSource {
+class CoinGeckoDataSource(
+    private val api: CoinGeckoApi,
+    private val rateLimiter: RateLimiter = RateLimiter(minIntervalMillis = 2_500)
+) : MarketDataSource {
 
     override val name = "CoinGecko"
 
     override suspend fun fetchDaily(asset: AssetEntity): List<Candle> {
         val id = asset.coingeckoId ?: return emptyList()
-        val ohlc = api.ohlc(id)
-        if (ohlc.isEmpty()) return emptyList()
+        val chart = rateLimiter.withPermit { api.marketChart(id) }
+        val prices = chart.prices?.takeIf { it.isNotEmpty() } ?: return emptyList()
 
-        val volumeByDay = runCatching { api.marketChart(id) }
-            .getOrNull()
-            ?.totalVolumes
-            ?.mapNotNull { entry ->
-                val time = entry.getOrNull(0)?.toLong() ?: return@mapNotNull null
-                val volume = entry.getOrNull(1) ?: return@mapNotNull null
-                startOfDay(time) to volume
-            }
-            ?.toMap()
-            .orEmpty()
+        val volumeByDay = chart.totalVolumes.orEmpty().mapNotNull { entry ->
+            val time = entry.getOrNull(0)?.toLong() ?: return@mapNotNull null
+            val volume = entry.getOrNull(1) ?: return@mapNotNull null
+            startOfDay(time) to volume
+        }.toMap()
 
-        return ohlc.mapNotNull { row ->
-            if (row.size < 5) return@mapNotNull null
-            val day = startOfDay(row[0].toLong())
+        // Mehrere Werte pro Tag koennen vorkommen; der letzte gilt als Schlusskurs.
+        val closeByDay = LinkedHashMap<Long, Double>()
+        prices.forEach { entry ->
+            val time = entry.getOrNull(0)?.toLong() ?: return@forEach
+            val price = entry.getOrNull(1) ?: return@forEach
+            closeByDay[startOfDay(time)] = price
+        }
+
+        var previousClose: Double? = null
+        return closeByDay.map { (day, close) ->
+            val open = previousClose ?: close
+            previousClose = close
             Candle(
                 time = day,
-                open = row[1],
-                high = row[2],
-                low = row[3],
-                close = row[4],
+                open = open,
+                high = maxOf(open, close),
+                low = minOf(open, close),
+                close = close,
                 volume = volumeByDay[day] ?: 0.0
             )
         }.sanitized()
     }
 
-    private fun startOfDay(epochMillis: Long): Long =
-        epochMillis / DAY_MILLIS * DAY_MILLIS
+    private fun startOfDay(epochMillis: Long): Long = epochMillis / DAY_MILLIS * DAY_MILLIS
 
     private companion object {
         const val DAY_MILLIS = 86_400_000L

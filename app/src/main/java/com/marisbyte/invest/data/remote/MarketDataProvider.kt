@@ -19,8 +19,9 @@ class MarketDataProvider(
     data class Result(val candles: List<Candle>, val source: String?)
 
     suspend fun load(asset: AssetEntity, minimumCandles: Int = 60): Result {
+        // Yahoo liefert als einzige Quelle ueberall echte Tages-OHLC inklusive Volumen.
         val chain = when (AssetClass.fromKey(asset.assetClass)) {
-            AssetClass.CRYPTO -> listOf(coinGecko, yahoo)
+            AssetClass.CRYPTO -> listOf(yahoo, coinGecko)
             else -> listOf(yahoo, stooq)
         }
         for (source in chain) {

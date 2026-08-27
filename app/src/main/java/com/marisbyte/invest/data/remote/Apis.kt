@@ -23,19 +23,17 @@ interface StooqApi {
 }
 
 interface CoinGeckoApi {
-    /** Liefert [[Zeit, Open, High, Low, Close], ...] - ohne Volumen. */
-    @GET("api/v3/coins/{id}/ohlc")
-    suspend fun ohlc(
-        @Path("id") id: String,
-        @Query("vs_currency") currency: String = "usd",
-        @Query("days") days: String = "365"
-    ): List<List<Double>>
-
+    /**
+     * Kurse und Volumen als [[Zeit, Wert], ...].
+     *
+     * Der Parameter `interval` ist auf der kostenlosen API nicht verfuegbar; ab 90 Tagen
+     * liefert der Endpunkt automatisch Tageswerte. Der OHLC-Endpunkt wird bewusst nicht
+     * genutzt: er gibt bei 365 Tagen nur 4-Tages-Kerzen zurueck.
+     */
     @GET("api/v3/coins/{id}/market_chart")
     suspend fun marketChart(
         @Path("id") id: String,
         @Query("vs_currency") currency: String = "usd",
-        @Query("days") days: String = "365",
-        @Query("interval") interval: String = "daily"
+        @Query("days") days: String = "365"
     ): CoinGeckoMarketChart
 }
