@@ -24,3 +24,4 @@ rootProject.name = "InvestTracker"
 
 include(":app")
 include(":core-analysis")
+include(":core-assistant")
