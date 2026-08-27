@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">InvestTracker</string>
+    <string name="notification_channel_signals">Tagesanalyse</string>
+    <string name="notification_channel_signals_desc">Meldet die stärksten Kauf- und Verkaufssignale nach der täglichen Analyse.</string>
+</resources>
