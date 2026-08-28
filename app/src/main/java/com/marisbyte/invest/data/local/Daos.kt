@@ -102,3 +102,30 @@ interface PortfolioDao {
     @Query("DELETE FROM holdings WHERE assetId = :assetId")
     suspend fun deleteHolding(assetId: String)
 }
+
+@Dao
+interface AssistantTaskDao {
+    @Query("SELECT * FROM assistant_tasks ORDER BY done ASC, dueAt IS NULL, dueAt ASC, id DESC")
+    fun observeAll(): Flow<List<AssistantTaskEntity>>
+
+    @Query("SELECT * FROM assistant_tasks WHERE done = 0 ORDER BY dueAt IS NULL, dueAt ASC, id ASC")
+    suspend fun open(): List<AssistantTaskEntity>
+
+    @Query("SELECT * FROM assistant_tasks WHERE done = 0 AND dueAt IS NOT NULL AND dueAt > :after")
+    suspend fun upcoming(after: Long): List<AssistantTaskEntity>
+
+    @Query("SELECT * FROM assistant_tasks WHERE id = :id")
+    suspend fun getById(id: Long): AssistantTaskEntity?
+
+    @Insert
+    suspend fun insert(task: AssistantTaskEntity): Long
+
+    @Query("UPDATE assistant_tasks SET done = :done WHERE id = :id")
+    suspend fun setDone(id: Long, done: Boolean)
+
+    @Query("DELETE FROM assistant_tasks WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("DELETE FROM assistant_tasks WHERE done = 1")
+    suspend fun deleteCompleted()
+}

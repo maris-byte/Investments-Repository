@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "assets": [
     {
       "symbol": "AAPL",
@@ -1005,6 +1005,71 @@
       "coingeckoId": "aave",
       "region": "Global",
       "tags": []
+    },
+    {
+      "symbol": "VNA",
+      "name": "Vonovia",
+      "assetClass": "STOCK",
+      "currency": "EUR",
+      "yahooSymbol": "VNA.DE",
+      "stooqSymbol": "vna.de",
+      "coingeckoId": null,
+      "region": "Deutschland",
+      "tags": [
+        "immobilien"
+      ]
+    },
+    {
+      "symbol": "LEG",
+      "name": "LEG Immobilien",
+      "assetClass": "STOCK",
+      "currency": "EUR",
+      "yahooSymbol": "LEG.DE",
+      "stooqSymbol": "leg.de",
+      "coingeckoId": null,
+      "region": "Deutschland",
+      "tags": [
+        "immobilien"
+      ]
+    },
+    {
+      "symbol": "TEG",
+      "name": "TAG Immobilien",
+      "assetClass": "STOCK",
+      "currency": "EUR",
+      "yahooSymbol": "TEG.DE",
+      "stooqSymbol": "teg.de",
+      "coingeckoId": null,
+      "region": "Deutschland",
+      "tags": [
+        "immobilien"
+      ]
+    },
+    {
+      "symbol": "AT1",
+      "name": "Aroundtown",
+      "assetClass": "STOCK",
+      "currency": "EUR",
+      "yahooSymbol": "AT1.DE",
+      "stooqSymbol": "at1.de",
+      "coingeckoId": null,
+      "region": "Deutschland",
+      "tags": [
+        "immobilien"
+      ]
+    },
+    {
+      "symbol": "IQQP",
+      "name": "iShares European Property Yield",
+      "assetClass": "ETF",
+      "currency": "EUR",
+      "yahooSymbol": "IQQP.DE",
+      "stooqSymbol": "iqqp.de",
+      "coingeckoId": null,
+      "region": "Europa",
+      "tags": [
+        "immobilien"
+      ]
     }
   ]
 }

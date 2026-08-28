@@ -83,3 +83,14 @@ data class TransactionEntity(
     val date: Long,
     val note: String? = null
 )
+
+/** Eine Aufgabe oder Erinnerung, die Alfred per Sprache entgegengenommen hat. */
+@Entity(tableName = "assistant_tasks")
+data class AssistantTaskEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val text: String,
+    /** Faelligkeit als Unix-Zeit in Millisekunden, sofern eine genannt wurde. */
+    val dueAt: Long?,
+    val done: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
+)

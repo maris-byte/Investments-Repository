@@ -1,0 +1,84 @@
+name: APK bauen
+
+# Baut die Debug-APK auf GitHubs Rechnern - dort ist das Android SDK vorhanden.
+# Das Ergebnis haengt als Datei am Release "alfred-debug" und laesst sich direkt
+# vom Handy aus herunterladen.
+
+on:
+  push:
+    branches:
+      - claude/alfred-voice-assistant-android-8guh6h
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Quellen holen
+        uses: actions/checkout@v4
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle einrichten
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Tests der reinen Kotlin-Module
+        run: ./gradlew :core-analysis:test :core-assistant:test --console=plain
+
+      - name: Debug-APK bauen
+        run: |
+          # Ohne --stacktrace: sonst begraebt Gradles Aufrufliste die eigentlichen
+          # Fehlermeldungen. pipefail sorgt dafuer, dass tee den Fehler nicht schluckt.
+          set -o pipefail
+          ./gradlew :app:assembleDebug --console=plain 2>&1 | tee /tmp/build.log
+
+      - name: Kompilierfehler auflisten
+        if: failure()
+        run: |
+          echo "===== Fehlermeldungen ====="
+          grep -E "^e: |^\s*e: |error:|FAILURE:|What went wrong|Execution failed" \
+            /tmp/build.log | head -100 || echo "(keine Fehlerzeilen gefunden)"
+
+      - name: APK umbenennen
+        run: |
+          mkdir -p artefakte
+          cp app/build/outputs/apk/debug/app-debug.apk artefakte/alfred-investtracker-debug.apk
+
+      - name: APK als Artefakt sichern
+        uses: actions/upload-artifact@v4
+        with:
+          name: alfred-investtracker-debug-apk
+          path: artefakte/alfred-investtracker-debug.apk
+          if-no-files-found: error
+
+      - name: Testberichte bei Fehlschlag sichern
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testberichte
+          path: |
+            **/build/reports/tests/**
+            **/build/test-results/**
+          if-no-files-found: ignore
+
+      - name: Release aktualisieren
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Vorabversion: ein fester Tag, der bei jedem Bau den neuesten Stand traegt.
+          gh release delete alfred-debug --yes --cleanup-tag || true
+          gh release create alfred-debug \
+            artefakte/alfred-investtracker-debug.apk \
+            --target "${GITHUB_SHA}" \
+            --title "Alfred - Debug-APK (${GITHUB_SHA:0:7})" \
+            --notes "Automatisch gebaute Debug-Version zum Ausprobieren. Zum Installieren muss auf dem Handy die Installation aus unbekannten Quellen erlaubt sein. Keine Freigabeversion." \
+            --prerelease
