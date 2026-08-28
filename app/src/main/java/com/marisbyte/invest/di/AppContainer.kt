@@ -1,6 +1,22 @@
 package com.marisbyte.invest.di
 
 import android.content.Context
+import com.marisbyte.invest.assistant.AlfredSession
+import com.marisbyte.invest.assistant.BriefingProvider
+import com.marisbyte.invest.assistant.CommandExecutor
+import com.marisbyte.invest.assistant.data.AssistantMarketProvider
+import com.marisbyte.invest.assistant.data.AssistantSettingsRepository
+import com.marisbyte.invest.assistant.data.AssistantTaskRepository
+import com.marisbyte.invest.assistant.data.DuckDuckGoApi
+import com.marisbyte.invest.assistant.data.EcbApi
+import com.marisbyte.invest.assistant.data.OpenMeteoApi
+import com.marisbyte.invest.assistant.data.OpenMeteoGeocodingApi
+import com.marisbyte.invest.assistant.data.RealEstateRepository
+import com.marisbyte.invest.assistant.data.SearchRepository
+import com.marisbyte.invest.assistant.data.WeatherRepository
+import com.marisbyte.invest.assistant.data.WikipediaApi
+import com.marisbyte.invest.assistant.speech.Speaker
+import com.marisbyte.invest.assistant.speech.VoiceListener
 import com.marisbyte.invest.data.local.AppDatabase
 import com.marisbyte.invest.data.remote.CoinGeckoApi
 import com.marisbyte.invest.data.remote.CoinGeckoDataSource
@@ -15,6 +31,9 @@ import com.marisbyte.invest.data.repo.MarketRepository
 import com.marisbyte.invest.data.repo.PortfolioRepository
 import com.marisbyte.invest.data.repo.SettingsRepository
 import com.marisbyte.invest.data.repo.UniverseSeeder
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -105,6 +124,77 @@ class AppContainer(context: Context) {
     val universeSeeder = UniverseSeeder(appContext, database.assetDao(), json)
 
     val assetDao = database.assetDao()
+
+    // --- Alfred, der Sprachassistent ---------------------------------------------
+
+    /** Laeuft laenger als ein Bildschirm: Analyselaeufe, die Alfred nur anstoesst. */
+    private val assistantScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    private val openMeteoApi: OpenMeteoApi =
+        retrofit("https://api.open-meteo.com/").create(OpenMeteoApi::class.java)
+    private val geocodingApi: OpenMeteoGeocodingApi =
+        retrofit("https://geocoding-api.open-meteo.com/").create(OpenMeteoGeocodingApi::class.java)
+    private val ecbApi: EcbApi =
+        retrofit("https://data-api.ecb.europa.eu/", scalars = true).create(EcbApi::class.java)
+    private val duckDuckGoApi: DuckDuckGoApi =
+        retrofit("https://api.duckduckgo.com/").create(DuckDuckGoApi::class.java)
+    private val wikipediaApi: WikipediaApi =
+        retrofit("https://de.wikipedia.org/").create(WikipediaApi::class.java)
+
+    val assistantSettingsRepository = AssistantSettingsRepository(appContext)
+
+    val assistantTaskRepository = AssistantTaskRepository(database.assistantTaskDao())
+
+    private val weatherRepository = WeatherRepository(appContext, openMeteoApi, geocodingApi)
+
+    private val realEstateRepository = RealEstateRepository(
+        api = ecbApi,
+        assetDao = database.assetDao(),
+        marketRepository = marketRepository
+    )
+
+    private val searchRepository = SearchRepository(duckDuckGoApi, wikipediaApi)
+
+    private val assistantMarketProvider = AssistantMarketProvider(
+        settingsRepository = settingsRepository,
+        portfolioRepository = portfolioRepository,
+        marketRepository = marketRepository,
+        analysisDao = database.analysisDao(),
+        assetDao = database.assetDao()
+    )
+
+    private val briefingProvider = BriefingProvider(
+        settingsRepository = assistantSettingsRepository,
+        weatherRepository = weatherRepository,
+        realEstateRepository = realEstateRepository,
+        marketProvider = assistantMarketProvider,
+        taskRepository = assistantTaskRepository
+    )
+
+    private val commandExecutor = CommandExecutor(
+        context = appContext,
+        settingsRepository = assistantSettingsRepository,
+        weatherRepository = weatherRepository,
+        realEstateRepository = realEstateRepository,
+        marketProvider = assistantMarketProvider,
+        searchRepository = searchRepository,
+        taskRepository = assistantTaskRepository,
+        analysisRunner = analysisRunner,
+        backgroundScope = assistantScope
+    )
+
+    /**
+     * Eine einzige Sitzung fuer die ganze App: Weckwort-Dienst und Bildschirm reden
+     * mit demselben Alfred und sehen denselben Gespraechsverlauf.
+     */
+    val alfredSession = AlfredSession(
+        speaker = Speaker(appContext),
+        voiceListener = VoiceListener(appContext),
+        settingsRepository = assistantSettingsRepository,
+        briefingProvider = briefingProvider,
+        commandExecutor = commandExecutor,
+        scope = assistantScope
+    )
 
     private companion object {
         const val USER_AGENT =

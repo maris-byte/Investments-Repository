@@ -6,6 +6,7 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.marisbyte.invest.InvestApp
+import com.marisbyte.invest.assistant.ui.AlfredViewModel
 import com.marisbyte.invest.ui.screens.dashboard.DashboardViewModel
 import com.marisbyte.invest.ui.screens.detail.AssetDetailViewModel
 import com.marisbyte.invest.ui.screens.markets.MarketsViewModel
@@ -50,6 +51,16 @@ object AppViewModels {
                 container.settingsRepository,
                 container.portfolioRepository,
                 container.marketRepository
+            )
+        }
+        initializer {
+            val application = this[APPLICATION_KEY] as Application
+            val container = InvestApp.container(application)
+            AlfredViewModel(
+                application = application,
+                session = container.alfredSession,
+                settingsRepository = container.assistantSettingsRepository,
+                taskRepository = container.assistantTaskRepository
             )
         }
         initializer {

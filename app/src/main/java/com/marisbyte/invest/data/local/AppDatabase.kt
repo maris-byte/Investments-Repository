@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [
@@ -11,9 +13,10 @@ import androidx.room.RoomDatabase
         CandleEntity::class,
         AnalysisEntity::class,
         HoldingEntity::class,
-        TransactionEntity::class
+        TransactionEntity::class,
+        AssistantTaskEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -21,8 +24,27 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun candleDao(): CandleDao
     abstract fun analysisDao(): AnalysisDao
     abstract fun portfolioDao(): PortfolioDao
+    abstract fun assistantTaskDao(): AssistantTaskDao
 
     companion object {
+
+        /**
+         * Version 2 bringt Alfreds Aufgabenliste. Bewusst eine echte Migration statt
+         * eines Neuaufbaus: Depot und Buchungen sind nicht wiederherstellbar.
+         */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `assistant_tasks` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`text` TEXT NOT NULL, " +
+                        "`dueAt` INTEGER, " +
+                        "`done` INTEGER NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL)"
+                )
+            }
+        }
+
         @Volatile
         private var instance: AppDatabase? = null
 
@@ -31,7 +53,11 @@ abstract class AppDatabase : RoomDatabase() {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "invest-tracker.db"
-            ).fallbackToDestructiveMigration().build().also { instance = it }
+            )
+                .addMigrations(MIGRATION_1_2)
+                .fallbackToDestructiveMigration()
+                .build()
+                .also { instance = it }
         }
     }
 }

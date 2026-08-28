@@ -1,7 +1,9 @@
-# InvestTracker
+# InvestTracker mit Alfred
 
 Android-App zum Verfolgen der eigenen Investments **und** zur täglichen, kennzahlenbasierten
-Bewertung von Aktien, ETFs, Edelmetallen, Rohstoffen und Kryptowährungen.
+Bewertung von Aktien, ETFs, Edelmetallen, Rohstoffen und Kryptowährungen — mit **Alfred**,
+dem Sprachassistenten, der auf seinen Namen hört, den Tag zusammenfasst und Aufgaben
+entgegennimmt.
 
 Jedes Instrument bekommt einen Score von **1 bis 100**:
 
@@ -59,20 +61,132 @@ Zur CoinGecko-Einschränkung: der kostenlose OHLC-Endpunkt liefert über ein Jah
 market_chart-Endpunkts – die Tagesspanne ist dabei enger als real, weshalb Yahoo für Krypto
 zuerst gefragt wird.
 
+
+## Alfred, der Sprachassistent
+
+Sag **„Alfred"** — er begrüßt dich mit Namen, liest das Wetter, die Lage an den Märkten und
+die Entwicklung der Immobilienpreise vor und wartet danach auf deine Aufgaben.
+
+```
+„Alfred."
+  → „Guten Morgen, Maris. In München sind es gerade 14 Grad, bedeckt, heute zwischen
+     11 Grad und 21 Grad, die Regenwahrscheinlichkeit liegt bei 70 Prozent. Nimm einen
+     Schirm mit. Dein Depot steht bei 12.500 Euro, plus 0,8 Prozent seit gestern und
+     insgesamt plus 14,2 Prozent. Am stärksten läuft Siemens mit plus 2,1 Prozent, am
+     schwächsten Bayer mit minus 1,4 Prozent. Die Wohnimmobilienpreise in Deutschland
+     liegen plus 2,4 Prozent gegenüber dem Vorjahr. Was kann ich für dich tun?"
+„Erinnere mich morgen um acht an den Zahnarzt."
+  → „Notiert: Den Zahnarzt. Ich erinnere dich morgen um 8 Uhr."
+„Such nach dem Zinsentscheid der EZB."
+  → liest die Kurzantwort vor und nennt die Quelle
+```
+
+### Was er versteht
+
+| Gesagt | Was passiert |
+|--------|--------------|
+| „Alfred" | Begrüßung mit Namen und der volle Tagesbericht |
+| „Wie wird das Wetter morgen?", „Wetter in Hamburg" | Vorhersage für heute, morgen oder einen genannten Ort |
+| „Wie steht mein Depot?", „Was macht Bitcoin?" | Depotlage bzw. ein einzelner Wert mit Kurs und Bewertung |
+| „Was machen die Immobilienpreise?" | Preisindex und Immobilienwerte an der Börse |
+| „Such nach …", „Was ist …?", jede offene Frage | Internetsuche, Antwort vorgelesen |
+| „Merk dir …", „Erinnere mich morgen um acht an …" | Aufgabe mit oder ohne Termin, Erinnerung wird eingeplant |
+| „Was steht heute an?", „Hake den Zahnarzt ab" | Aufgabenliste vorlesen bzw. erledigen |
+| „Stell einen Timer auf zehn Minuten" | Timer mit Meldung |
+| „Aktualisiere die Kurse" | startet die Analyse im Hintergrund |
+| „Öffne das Depot" | wechselt den Bildschirm |
+| „Wiederhole", „Was kannst du?", „Danke, das war alles" | Steuerung des Gesprächs |
+
+Zeitangaben versteht er, wie man sie sagt: *in zehn Minuten*, *in einer halben Stunde*,
+*morgen um halb sieben*, *heute Abend*, *übermorgen Mittag*.
+
+### Wie das Weckwort funktioniert — und was das kostet
+
+Android bietet **keine** Schnittstelle für ein eigenes Weckwort an. Alfred löst das ohne
+fremde Bibliothek und ohne Schlüssel: ein Vordergrunddienst lässt die Spracherkennung des
+Geräts im Kreis laufen und prüft jedes Zwischenergebnis auf den Namen. Weil die Erkennung
+selten genau „Alfred" liefert, gelten auch *Alfredo*, *Alfret*, *Alfrid* und das getrennte
+*Alf red* als Weckruf — *Manfred* und *Alfons* dagegen nicht.
+
+Was daraus folgt, ehrlich gesagt:
+
+- **Das kostet spürbar Akku.** Das Dauerlauschen ist deshalb standardmäßig **aus**, läuft nur
+  als sichtbare Dauermeldung und lässt sich aus dieser Meldung heraus sofort beenden.
+- Ab **Android 13** wird die Erkennung *auf dem Gerät* benutzt, wo sie verfügbar ist — dann
+  verlässt kein gesprochenes Wort das Handy. Darunter läuft sie über den Dienst, den das
+  Gerät für Spracheingaben eingerichtet hat.
+- Manche Hersteller drosseln dauerhaft laufende Mikrofonzugriffe. Alfred fängt Abbrüche ab
+  und startet die Erkennung mit wachsender Pause neu, aber garantieren lässt sich das nicht.
+- **Ohne Dauerlauschen** geht es genauso: Alfred lässt sich in den Android-Einstellungen als
+  Standard-Assistenz-App auswählen und antwortet dann auf die Assistenzgeste. Oder man tippt
+  in der App unter **Alfred** auf *Bericht anhören*.
+
+Das Gespräch selbst braucht keinen sichtbaren Bildschirm — es läuft im Dienst weiter, auch
+wenn das Display aus ist.
+
+### Datenquellen des Assistenten
+
+Wie beim Rest der App: alles kostenlos, alles ohne API-Schlüssel.
+
+| Quelle | Rolle |
+|--------|-------|
+| Open-Meteo | Wetter und Ortssuche |
+| EZB-Datenportal (Datensatz RESR) | Wohnimmobilien-Preisindex, Quartalswerte |
+| Vonovia, LEG, TAG, Aroundtown, Immobilien-ETF | tagesaktueller Indikator für den Immobilienmarkt |
+| DuckDuckGo Instant Answer | Kurzantworten aus der Internetsuche |
+| Wikipedia | Auffangnetz für alles, was DuckDuckGo nicht weiß |
+| die App selbst | Depot, Kurse und Bewertungen aus der letzten Tagesanalyse |
+
+Der Preisindex ist eine **Quartalsreihe** und liegt einige Monate zurück — deshalb der
+zweite Blickwinkel über die börsengehandelten Immobilienwerte, die jeden Morgen eine frische
+Zahl liefern. Der Reihenschlüssel der EZB-Zeitreihe steht in den Einstellungen und lässt sich
+ändern, etwa auf den Euroraum oder ein anderes Land; fällt er aus, bleibt der Börsenteil
+bestehen.
+
+Die Internetsuche liefert Textantworten, keine Trefferliste. Für tagesaktuelle Ereignisse
+ist das die Grenze des Verfahrens — dann sagt Alfred, dass er nichts Brauchbares gefunden hat.
+
+### Berechtigungen
+
+| Berechtigung | Wofür | Ohne sie |
+|--------------|-------|----------|
+| Mikrofon | zuhören | Alfred liest den Bericht vor, nimmt aber keine Befehle an |
+| Benachrichtigungen | Dauermeldung, Erinnerungen, Timer | kein Dauerlauschen, keine Erinnerungsmeldung |
+| Ungefährer Standort | Wetter am aktuellen Ort | es gilt der Ort aus den Einstellungen |
+| Nach Neustart starten | Dauerlauschen und Erinnerungen wiederherstellen | beides muss von Hand neu gestartet werden |
+
+Erinnerungen laufen über den WorkManager statt über einen exakten Wecker — dafür bräuchte die
+App ab Android 12 eine gesonderte Systemberechtigung, die sie sonst nirgends benötigt. Der
+Preis: im Energiesparmodus kann eine Meldung ein paar Minuten später kommen.
+
+### Einstellungen
+
+Im Reiter **Alfred**: Name, Weckwort, Ort fürs Wetter, welche Abschnitte im Bericht
+vorkommen, Sprechtempo, der EZB-Reihenschlüssel — und die Aufgabenliste zum Nachlesen,
+Abhaken und Löschen.
+
 ## Aufbau
 
 ```
 core-analysis/     reines Kotlin/JVM-Modul: Indikatoren + Bewertungsmodell (unit-getestet)
+core-assistant/    reines Kotlin/JVM-Modul: Alfreds Sprachlogik (unit-getestet)
+  wake             Weckworterkennung inklusive der üblichen Hörfehler
+  intent           deutscher Befehls- und Zeitparser
+  briefing/reply   die gesprochenen Texte
+  text/weather     Zahlwörter, Uhrzeiten, WMO-Wettercodes
+  market/task      Zuordnung gesprochener Namen zu Instrumenten und Aufgaben
 app/               Android-App (Jetpack Compose, Room, WorkManager, Retrofit)
-  data/local       Room-Datenbank: Instrumente, Kerzen, Analysen, Depot
+  data/local       Room-Datenbank: Instrumente, Kerzen, Analysen, Depot, Aufgaben
   data/remote      Yahoo/Stooq/CoinGecko + Fallback-Kette
   data/repo        Repositories, Analyselauf, Depotlogik
+  assistant        Alfred: Sitzung, Weckwort-Dienst, Sprachein-/-ausgabe, Datenquellen
   work             Tagesanalyse im Hintergrund + Benachrichtigungen
-  ui               Compose-Oberfläche (Übersicht, Märkte, Detail, Depot, Einstellungen)
+  ui               Compose-Oberfläche (Übersicht, Märkte, Detail, Depot, Alfred, Mehr)
 ```
 
-Die Analyse liegt bewusst in einem eigenen Modul ohne Android-Abhängigkeiten: Sie ist damit
-auf jedem JVM-System testbar und lässt sich später ohne Umbau wiederverwenden.
+Analyse und Sprachlogik liegen bewusst in eigenen Modulen ohne Android-Abhängigkeiten: Sie
+sind damit auf jedem JVM-System testbar. Im Android-Teil bleiben nur die Schalen — Mikrofon,
+Sprachausgabe, Netz, Datenbank, Oberfläche.
 
 ## Bauen
 
@@ -80,6 +194,8 @@ Voraussetzungen: Android Studio (Ladybug oder neuer) bzw. Android SDK 35, JDK 17
 
 ```bash
 ./gradlew :core-analysis:test        # Tests des Bewertungsmodells
+./gradlew :core-assistant:test       # Tests der Sprachlogik (Weckwort, Befehle, Texte)
+./gradlew test                       # beides
 ./gradlew :app:assembleDebug         # Debug-APK bauen
 ./gradlew :app:installDebug          # auf angeschlossenem Gerät installieren
 ```
@@ -90,6 +206,9 @@ muss dafür erlaubt sein). Minimum ist Android 8.0 (API 26).
 
 ## Erste Schritte in der App
 
+0. Für Alfred: Reiter **Alfred** öffnen, Namen und Ort eintragen, *Bericht anhören* antippen.
+   Wer ihn rufen statt antippen will, schaltet dort **„Auf Alfred hören"** ein und erlaubt
+   den Zugriff aufs Mikrofon.
 1. App starten – das Universum wird beim ersten Start eingespielt.
 2. Oben rechts auf **Aktualisieren** tippen. Der erste Lauf lädt für alle Instrumente bis zu
    zwei Jahre Historie und dauert einige Minuten.
@@ -100,6 +219,13 @@ muss dafür erlaubt sein). Minimum ist Android 8.0 (API 26).
 
 ## Grenzen
 
+- Das Weckwort läuft über die normale Spracherkennung des Geräts, nicht über ein eigens
+  trainiertes Modell: es kostet Akku, und in einem lauten Raum wird der Name nicht immer
+  erkannt.
+- Alfreds Befehlsverständnis ist regelbasiert, kein Sprachmodell. Er versteht die Sätze aus
+  der Tabelle oben und deren übliche Abwandlungen — freies Plaudern nicht.
+- Für Deutsch müssen Sprachausgabe und Spracherkennung auf dem Gerät eingerichtet sein; Alfred
+  sagt Bescheid, wenn die Sprachdaten fehlen.
 - Die Analyse arbeitet auf **Tageskerzen**. Der Daytrading-Modus bewertet damit die Ausgangslage
   für die nächste Sitzung; echte Intraday-Signale (1–15 Minuten) brauchen einen kostenpflichtigen
   Datenfeed.

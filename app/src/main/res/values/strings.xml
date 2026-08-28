@@ -2,4 +2,15 @@
     <string name="app_name">InvestTracker</string>
     <string name="notification_channel_signals">Tagesanalyse</string>
     <string name="notification_channel_signals_desc">Meldet die stärksten Kauf- und Verkaufssignale nach der täglichen Analyse.</string>
+
+    <string name="alfred_channel_listening">Alfred hört zu</string>
+    <string name="alfred_channel_listening_desc">Dauermeldung, solange Alfred auf sein Weckwort wartet.</string>
+    <string name="alfred_channel_reminder">Erinnerungen und Timer</string>
+    <string name="alfred_channel_reminder_desc">Meldet fällige Aufgaben und abgelaufene Timer.</string>
+    <string name="alfred_listening_title">%1$s wartet auf seinen Namen</string>
+    <string name="alfred_listening_waiting">Sag den Namen, dann melde ich mich.</string>
+    <string name="alfred_listening_active">Gespräch läuft …</string>
+    <string name="alfred_listening_no_microphone">Kein Zugriff aufs Mikrofon – bitte in den Einstellungen erlauben.</string>
+    <string name="alfred_reminder_title">Erinnerung</string>
+    <string name="alfred_stop_listening">Beenden</string>
 </resources>
