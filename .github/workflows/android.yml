@@ -31,10 +31,21 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Tests der reinen Kotlin-Module
-        run: ./gradlew :core-analysis:test :core-assistant:test --stacktrace
+        run: ./gradlew :core-analysis:test :core-assistant:test --console=plain
 
       - name: Debug-APK bauen
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: |
+          # Ohne --stacktrace: sonst begraebt Gradles Aufrufliste die eigentlichen
+          # Fehlermeldungen. pipefail sorgt dafuer, dass tee den Fehler nicht schluckt.
+          set -o pipefail
+          ./gradlew :app:assembleDebug --console=plain 2>&1 | tee /tmp/build.log
+
+      - name: Kompilierfehler auflisten
+        if: failure()
+        run: |
+          echo "===== Fehlermeldungen ====="
+          grep -E "^e: |^\s*e: |error:|FAILURE:|What went wrong|Execution failed" \
+            /tmp/build.log | head -100 || echo "(keine Fehlerzeilen gefunden)"
 
       - name: APK umbenennen
         run: |
