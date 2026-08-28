@@ -89,12 +89,14 @@ class CommandExecutor(
         intent: AssistantIntent.Weather,
         settings: AssistantSettingsRepository.Settings
     ): CommandResult {
-        val snapshot = if (intent.location != null) {
-            weatherRepository.loadForCity(intent.location, intent.tomorrow)
+        // In eine lokale Variable holen: ueber Modulgrenzen hinweg greift kein Smart Cast.
+        val location = intent.location
+        val snapshot = if (location != null) {
+            weatherRepository.loadForCity(location, intent.tomorrow)
         } else {
             weatherRepository.load(settings.weatherCity, intent.tomorrow)
         }
-        if (snapshot == null && settings.weatherCity.isBlank() && intent.location == null) {
+        if (snapshot == null && settings.weatherCity.isBlank() && location == null) {
             return CommandResult(
                 "Ich weiß nicht, wo du bist. Trag deinen Ort in den Einstellungen ein " +
                     "oder frag mich nach dem Wetter in einer bestimmten Stadt."
